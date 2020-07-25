@@ -57,45 +57,64 @@
            :on-change on-change}])
 
 (defn basic-input
-  ([id label input-type atom]
-   (basic-input id label input-type atom #(reset! atom (-> % .-target .-value))))
-  ([id label input-type atom on-change]
+  ([id atom input-type label helper-text]
+   (basic-input id atom input-type label helper-text #(reset! atom (-> % .-target .-value))))
+  ([id atom input-type label helper-text on-change]
    [:div.form-group
     [:label {:for id} label]
-    [input-element id input-type #(deref atom) on-change]]))
+    [input-element id input-type #(deref atom) on-change]
+    (into [:small.form-text.text-muted] helper-text)]))
 
-(defn number-input [id label atom]
-  (basic-input id label "number" atom))
+(defn number-input [id atom label helper-text]
+  (basic-input id atom "number" label helper-text))
 
 (def iso-date-formatter (time-format/formatters :date))
 
-(defn date-input [id label atom]
+(defn date-input [id atom label helper-text]
   [:div.form-group
    [:label {:for id} label]
    [input-element id "date"
     #(time-format/unparse iso-date-formatter @atom)
-    #(reset! atom (time-format/parse iso-date-formatter (-> % .-target .-value)))]])
-
-(defn hours-accrued-input []
-  (number-input "hours-accrued" "Hours accrued" hours-accrued))
-
-(defn future-days-used-input []
-  (number-input "future-used" "Future days used" future-days-used))
-
-(defn vac-days-per-year-input []
-  (number-input "vac-days-per-year" "Vacation days per year" vac-days-per-year))
-
-(defn accrued-as-of-input []
-  (date-input "accrued-as-of" "Hours accrued current as of" accrued-as-of))
+    #(reset! atom (time-format/parse iso-date-formatter (-> % .-target .-value)))]
+   (into [:small.form-text.text-muted] (vec helper-text))])
 
 (defn table [header rows]
   [:table.table.table-striped
    [:thead [:tr (map (fn [cell] [:th cell]) header)]]
    [:tbody (map (fn [row]
-              [:tr (map (fn [cell] [:td cell]) row)])
-            rows)]])
+                  [:tr (map (fn [cell] [:td cell]) row)])
+                rows)]])
+
+(defn infobox [body]
+  [:div.card
+   (into [:div.card-body] body)])
+
+(defn hours-accrued-input []
+  (number-input "hours-accrued" hours-accrued  "Hours accrued"
+                ["How many hours you currently have accrued. You can get this by running " [:code "/accruals list"]
+                 " in Slack and finding the number " [:strong "Remaining Balance"] " under " [:strong "VAC Hours"] "."]))
+
+(defn future-days-used-input []
+  (number-input "future-used" future-days-used "Future days used"
+                ["How many VAC days you already have planned in the future. You can see leave you have requested "
+                 "by messaging " [:code "summary @yourname"] " to " [:strong "attendancebot"] " on Slack."]))
+
+(defn vac-days-per-year-input []
+  (number-input "vac-days-per-year" vac-days-per-year "Vacation days per year"
+                ["How many vacation days you earn per year"]))
+
+(defn accrued-as-of-input []
+  (date-input "accrued-as-of" accrued-as-of "Hours accrued current as of"
+              ["When the accruals balance was last updated. This is the " [:strong "Balance As Of"]
+              " date in " [:code "/accruals list"] "."]))
 
 (def human-formatter (time-format/formatter "M/d/yy"))
+
+(defn style-hours [hours]
+  (let [rounded (.toFixed hours 2)]
+    (if (neg? hours)
+      [:span {:style {:color "red"}} rounded]
+      rounded)))
 
 (defn accruals-table []
   (let [starting-hours (- @hours-accrued (days->hours @future-days-used))
@@ -106,19 +125,33 @@
     (table
      ["Date" "Unused Accrued Hours" "Unused Accrued Days"]
      (map (fn [r] [(time-format/unparse human-formatter (:date r))
-                   (.toFixed (:accrued-hours r) 2)
+                   (style-hours (:accrued-hours r))
                    (:accrued-days r)])
           accruals))))
 
+(defn general-info []
+  (infobox ["This is a calculator to help you plan how much time off you can take in the future. "
+            "It lets you know how much time you can take, when."
+            [:br] "Note that this does not take personal days (PER) into account."]))
+
+(defn feedback []
+  (infobox ["Questions? Suggestions? Holler at " [:strong "@Micah"] " on Slack. Or raise an issue on "
+            [:a {:href "https://github.com/micahbf/timeoff"} "GitHub"] "."]))
+
 (defn home-page []
-  [:div
-   [:div [:h2 "Time off calculator"]]
-   [:form
-    [hours-accrued-input]
-    [future-days-used-input]
-    [vac-days-per-year-input]
-    [accrued-as-of-input]]
-   [accruals-table]])
+  [:div.container
+   [:div.row [:div.col [:h2 "Time Off Planner"]]]
+   [:div.row
+    [:div.col-md
+     [general-info]
+     [:br]
+     [:form
+      [hours-accrued-input]
+      [accrued-as-of-input]
+      [future-days-used-input]
+      [vac-days-per-year-input]]
+     [feedback]]
+    [:div.col-md [accruals-table]]]])
 
 ;; -------------------------
 ;; Initialize app
