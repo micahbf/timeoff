@@ -26,16 +26,19 @@
     [:label {:for id} label]
     [input-element id input-type #(deref atom) on-change]]))
 
+(defn number-input [id label atom]
+  (basic-input id label "number" atom))
+
 (defn date-input [id label atom]
   [:div.form-group
    [:label {:for id} label]
    [input-element id "date" atom]])
 
 (defn hours-accrued-input []
-  (basic-input "hours-accrued" "Hours accrued" "number" hours-accrued))
+  (number-input "hours-accrued" "Hours accrued" hours-accrued))
 
 (defn future-days-used-input []
-  (basic-input "future-used" "Future days used" "number" future-days-used))
+  (number-input "future-used" "Future days used" future-days-used))
 
 (defn home-page []
   [:div [:h2 "Time off calculator"]]
