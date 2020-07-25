@@ -92,7 +92,7 @@
 (defn hours-accrued-input []
   (number-input "hours-accrued" hours-accrued  "Hours accrued"
                 ["How many hours you currently have accrued. You can get this by running " [:code "/accruals list"]
-                 " in Slack and finding the number " [:strong "Remaining Balance"] " under " [:strong "VAC Hours"] "."]))
+                 " in Slack and finding " [:strong "Remaining Balance"] " under " [:strong "VAC Hours"] "."]))
 
 (defn future-days-used-input []
   (number-input "future-used" future-days-used "Future days used"
