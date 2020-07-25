@@ -78,12 +78,16 @@
     #(reset! atom (time-format/parse iso-date-formatter (-> % .-target .-value)))]
    (into [:small.form-text.text-muted] (vec helper-text))])
 
+(defn tr
+  ([key cells]
+   (tr key cells :td))
+  ([key cells cell-elem]
+   [:tr {:key key} (map-indexed (fn [idx cell] [cell-elem {:key (str key idx)} cell]) cells)]))
+
 (defn table [header rows]
   [:table.table.table-striped
-   [:thead [:tr (map (fn [cell] [:th cell]) header)]]
-   [:tbody (map (fn [row]
-                  [:tr (map (fn [cell] [:td cell]) row)])
-                rows)]])
+   [:thead (tr "header" header)]
+   [:tbody (map #(tr (first %) %) rows)]])
 
 (defn infobox [body]
   [:div.card
