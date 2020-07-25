@@ -1,3 +1,8 @@
+# Time Off Planner
+
+This is a very simple tool built in [ClojureScript](https://clojurescript.org/) using [Reagent](https://reagent-project.github.io/).
+
+The entire app is in [src/timeoff/core.cljs](src/timeoff/core.cljs).
 
 ### Development mode
 To start the Figwheel compiler, navigate to the project folder and run the following command in the terminal:
