@@ -11,13 +11,10 @@
 
 (def anchor-payday (time/local-date 2020 7 20))
 
-(defn payday-seq
-  ([]
-   (payday-seq anchor-payday))
-  ([date]
-   (lazy-seq (cons date (payday-seq (time/plus date (time/weeks 2)))))))
+(defn paydays-from [date]
+   (lazy-seq (cons date (paydays-from (time/plus date (time/weeks 2))))))
 
-(def paydays (payday-seq))
+(def paydays (paydays-from anchor-payday))
 
 (defn most-recent-payday []
   (let [today (time/today)]
