@@ -31,21 +31,26 @@
 (defn accrued-by-payday [accrued-as-of starting-hours hours-per-period]
   (map-indexed (fn [idx date]
                  (let [accrued-hours (+ starting-hours (* (+ 1 idx) hours-per-period))]
-                   {:date date
-                    :accrued-hours accrued-hours
-                    :accrued-days (hours->days accrued-hours)}))
+                   {:date date :accrued-hours accrued-hours}))
                (paydays-after accrued-as-of)))
 
-(defn insert-at-new-year [accruals el-fn]
-  (reduce (fn [accruals next]
-            (let [last-acc (last accruals)
-                  last-year (and last-acc (time/year (:date last-acc)))
-                  next-year (time/year (:date next))]
-              (if (and last-year (not= last-year next-year))
-                (conj accruals (el-fn (time/year (:date next))) next)
-                (conj accruals next))))
-          []
-          accruals))
+(defn add-events [accruals & insert-fns]
+  (reduce (fn [events [last next]]
+            (let [maybe-additions (map #(apply % [last next]) insert-fns)
+                  additions (remove nil? maybe-additions)]
+              (concat events additions [next])))
+          [(first accruals)]
+          (partition 2 1 accruals)))
+
+(defn new-year? [last next]
+  (let [last-year (time/year (:date last))
+        next-year (time/year (:date next))]
+    (if (not= last-year next-year) next-year)))
+
+(defn add-new-year [last next]
+  (if-let [next-year (new-year? last next)]
+    {:date (time/local-date next-year 1 1)
+     :new-year next-year}))
 
 
 ;; -------------------------
@@ -108,6 +113,13 @@
 (defonce accrued-as-of (r/atom (most-recent-payday)))
 (defonce vac-days-per-year (r/atom 15))
 
+(defn accruals-with-events [num-paydays]
+  (let [starting-hours (- @hours-accrued (days->hours @future-days-used))
+        accruals (take num-paydays (accrued-by-payday
+                                    @accrued-as-of
+                                    starting-hours
+                                    (hours-per-period @vac-days-per-year)))]
+    (add-events accruals add-new-year)))
 
 ;; -------------------------
 ;; App Components
@@ -140,28 +152,23 @@
 (defn accruals-row [row]
   (tr (str (:date row)) [(human-format-date (:date row))
                          (style-hours (:accrued-hours row))
-                         (:accrued-days row)]))
+                         (hours->days (:accrued-hours row))]))
 
-(defn new-year-per-row [new-year]
-  [:tr.table-success {:key (str "new-year-per" new-year)}
-   [:td (human-format-date (time/local-date new-year 1 1))]
-   [:td {:col-span 2}
-    [:small "Make sure you have used your personal days, as they do not roll over."
-     [:br] "You will get " [:strong "3"] " new personal days, which are not reflected here."]]])
+(defn new-year-row [row]
+  (let [year (:new-year row)]
+    [:tr.table-success {:key (str "new-year" year)}
+     [:td (human-format-date (:date row))]
+     [:td {:col-span 2}
+      [:small "Make sure you have used your personal days, as they do not roll over."
+       [:br] "You will get " [:strong "3"] " new personal days, which are not reflected here."]]]))
 
 (defn accruals-table []
-  (let [starting-hours (- @hours-accrued (days->hours @future-days-used))
-        accruals (take 26 (accrued-by-payday
-                           @accrued-as-of
-                           starting-hours
-                           (hours-per-period @vac-days-per-year)))
-        accs-with-new-year (insert-at-new-year accruals (fn [year] {:new-year year}))]
-    (table
-     ["Date" "Unused Accrued Hours" "Unused Accrued Days"]
-     (map #(if (:new-year %)
-             (new-year-per-row (:new-year %))
-             (accruals-row %))
-          accs-with-new-year))))
+  (table
+   ["Date" "Unused Accrued Hours" "Unused Accrued Days"]
+   (map #(cond
+           (:accrued-hours %) (accruals-row %)
+           (:new-year %) (new-year-row %))
+        (accruals-with-events 26))))
 
 (defn general-info []
   (infobox ["This is a calculator to help you plan your future PTO. "
