@@ -76,7 +76,7 @@
    [input-element id "date"
     #(time-format/unparse iso-date-formatter @atom)
     #(reset! atom (time-format/parse iso-date-formatter (-> % .-target .-value)))]
-   (into [:small.form-text.text-muted] (vec helper-text))])
+   (into [:small.form-text.text-muted] helper-text)])
 
 (defn tr
   ([key cells]
@@ -117,7 +117,7 @@
 (defn style-hours [hours]
   (let [rounded (.toFixed hours 2)]
     (if (neg? hours)
-      [:span {:style {:color "red"}} rounded]
+      [:span.text-danger rounded]
       rounded)))
 
 (defn accruals-table []
