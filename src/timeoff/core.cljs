@@ -171,6 +171,9 @@
   (infobox ["Questions? Suggestions? Holler at " [:strong "@Micah"] " on Slack. Or raise an issue on "
             [:a {:href "https://github.com/micahbf/timeoff"} "GitHub"] "."]))
 
+(defn really-big-emoji [emoji]
+  [:div {:style {:font-size "30em"}} emoji])
+
 (defn home-page []
   [:div.container
    [:div.row [:div.col [:h2 "Time Off Planner"]]]
@@ -183,7 +186,8 @@
       [accrued-as-of-input]
       [future-days-used-input]
       [vac-days-per-year-input]]
-     [feedback]]
+     [feedback]
+     [really-big-emoji "🌴"]]
     [:div.col-md [accruals-table]]]])
 
 ;; -------------------------
