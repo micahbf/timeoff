@@ -5,6 +5,7 @@
       [cljs-time.core :as time]
       [cljs-time.format :as time-format]))
 
+
 ;; -------------------------
 ;; Logic
 
@@ -19,10 +20,11 @@
 (def paydays (payday-seq))
 
 (defn most-recent-payday []
-  (last (take-while #(time/before? % (time/today)) paydays)))
+  (let [today (time/today)]
+    (last (take-while #(time/before? % today) paydays))))
 
 (defn paydays-after [date]
-  (drop-while #(or (time/equal? % date) (time/before? % date)) paydays))
+  (drop-while #(or (time/before? % date) (time/equal? % date)) paydays))
 
 (defn hours-per-period [days-per-year] (/ (* 8 days-per-year) 26))
 
@@ -57,8 +59,9 @@
 (defonce accrued-as-of (r/atom (most-recent-payday)))
 (defonce vac-days-per-year (r/atom 15))
 
+
 ;; -------------------------
-;; Views
+;; Generic Views
 
 (defn input-element [id type value-fn on-change]
   [:input {:id id
@@ -81,6 +84,10 @@
 
 (def iso-date-formatter (time-format/formatters :date))
 
+(def human-formatter (time-format/formatter "M/d/yy"))
+(defn human-format-date [date]
+  (time-format/unparse human-formatter date))
+
 (defn date-input [id atom label helper-text]
   [:div.form-group
    [:label {:for id} label]
@@ -99,11 +106,14 @@
   [:table.table.table-striped
    [:thead (tr "header" header-cells :th)]
    [:tbody (apply concat body)]])
-   ;; [:tbody (map #(tr (first %) %) rows)]])
 
 (defn infobox [body]
   [:div.card
    (into [:div.card-body] body)])
+
+
+;; -------------------------
+;; App Components
 
 (defn hours-accrued-input []
   (number-input "hours-accrued" hours-accrued  "Hours accrued"
@@ -124,10 +134,6 @@
               ["When the accruals balance was last updated. This is the " [:strong "Balance As Of"]
               " date in " [:code "/accruals list"] "."]))
 
-(def human-formatter (time-format/formatter "M/d/yy"))
-(defn human-format-date [date]
-  (time-format/unparse human-formatter date))
-
 (defn style-hours [hours]
   (let [rounded (.toFixed hours 2)]
     (if (neg? hours)
@@ -136,8 +142,8 @@
 
 (defn accruals-row [row]
   (tr (str (:date row)) [(human-format-date (:date row))
-                  (style-hours (:accrued-hours row))
-                  (:accrued-days row)]))
+                         (style-hours (:accrued-hours row))
+                         (:accrued-days row)]))
 
 (defn new-year-per-row [new-year]
   [:tr.table-success {:key (str "new-year-per" new-year)}
@@ -189,6 +195,7 @@
      [feedback]
      [really-big-emoji "🌴"]]
     [:div.col-md [accruals-table]]]])
+
 
 ;; -------------------------
 ;; Initialize app
