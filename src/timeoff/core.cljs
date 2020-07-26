@@ -52,16 +52,11 @@
 
 
 ;; -------------------------
-;; State
-
-(defonce hours-accrued (r/atom 0))
-(defonce future-days-used (r/atom 0))
-(defonce accrued-as-of (r/atom (most-recent-payday)))
-(defonce vac-days-per-year (r/atom 15))
-
-
-;; -------------------------
 ;; Generic Views
+
+(def iso-date-formatter (time-format/formatters :date))
+(def human-formatter (time-format/formatter "M/d/yy"))
+(defn human-format-date [date] (time-format/unparse human-formatter date))
 
 (defn input-element [id type value-fn on-change]
   [:input {:id id
@@ -70,31 +65,27 @@
            :value (value-fn)
            :on-change on-change}])
 
+(defn form-group [id label helper-text input-el]
+  [:div.form-group
+   [:label {:for id} label]
+   input-el
+   (into [:small.form-text.text-muted] helper-text)])
+
 (defn basic-input
   ([id atom input-type label helper-text]
    (basic-input id atom input-type label helper-text #(reset! atom (-> % .-target .-value))))
   ([id atom input-type label helper-text on-change]
-   [:div.form-group
-    [:label {:for id} label]
-    [input-element id input-type #(deref atom) on-change]
-    (into [:small.form-text.text-muted] helper-text)]))
+   (form-group id label helper-text
+               [input-element id input-type #(deref atom) on-change])))
 
 (defn number-input [id atom label helper-text]
   (basic-input id atom "number" label helper-text))
 
-(def iso-date-formatter (time-format/formatters :date))
-
-(def human-formatter (time-format/formatter "M/d/yy"))
-(defn human-format-date [date]
-  (time-format/unparse human-formatter date))
-
 (defn date-input [id atom label helper-text]
-  [:div.form-group
-   [:label {:for id} label]
-   [input-element id "date"
-    #(time-format/unparse iso-date-formatter @atom)
-    #(reset! atom (time-format/parse iso-date-formatter (-> % .-target .-value)))]
-   (into [:small.form-text.text-muted] helper-text)])
+  (form-group id label helper-text
+              [input-element id "date"
+               #(time-format/unparse iso-date-formatter @atom)
+               #(reset! atom (time-format/parse iso-date-formatter (-> % .-target .-value)))]))
 
 (defn tr
   ([key cells]
@@ -110,6 +101,15 @@
 (defn infobox [body]
   [:div.card
    (into [:div.card-body] body)])
+
+
+;; -------------------------
+;; State
+
+(defonce hours-accrued (r/atom 0))
+(defonce future-days-used (r/atom 0))
+(defonce accrued-as-of (r/atom (most-recent-payday)))
+(defonce vac-days-per-year (r/atom 15))
 
 
 ;; -------------------------
@@ -170,8 +170,7 @@
   (infobox ["This is a calculator to help you plan your future PTO. "
             "It tells you how much vacation (VAC) time you will have, minus any time that you already have planned in the future."
             [:br] [:br]
-            "Note that this does not take personal days (PER) into account."
-            ]))
+            "Note that this does not take personal days (PER) into account."]))
 
 (defn feedback []
   (infobox ["Questions? Suggestions? Holler at " [:strong "@Micah"] " on Slack. Or raise an issue on "
