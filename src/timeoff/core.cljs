@@ -99,7 +99,7 @@
    [:tbody (apply concat body)]])
 
 (defn infobox [body]
-  [:div.card
+  [:div.card.bg-light
    (into [:div.card-body] body)])
 
 
