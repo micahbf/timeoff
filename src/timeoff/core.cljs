@@ -113,7 +113,7 @@
 (defn future-days-used-input []
   (number-input "future-used" future-days-used "Future days used"
                 ["How many VAC days you already have planned in the future. You can see leave you have requested "
-                 "by messaging " [:code "summary @yourname"] " to " [:strong "attendancebot"] " on Slack."]))
+                 "by messaging " [:code "summary @yourname"] " to " [:strong "@AttendanceBot"] " on Slack."]))
 
 (defn vac-days-per-year-input []
   (number-input "vac-days-per-year" vac-days-per-year "Vacation days per year"
@@ -161,11 +161,8 @@
           accs-with-new-year))))
 
 (defn general-info []
-  (infobox ["This is a calculator to help you plan how much time off you can take in the future. "
-            "It lets you know how much time you can take, when."
-            [:br] [:br]
-            "The \"unused accrued\" figures in the table represent how much time you will have available, "
-            "less any vacation time you have already planned in the future."
+  (infobox ["This is a calculator to help you plan your future PTO. "
+            "It tells you how much vacation (VAC) time you will have, minus any time that you already have planned in the future."
             [:br] [:br]
             "Note that this does not take personal days (PER) into account."
             ]))
