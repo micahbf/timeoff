@@ -103,7 +103,7 @@
    [:tr {:key key} (map-indexed (fn [idx cell] [cell-elem {:key (str key idx)} cell]) cells)]))
 
 (defn table [header-cells & body]
-  [:table.table.table-striped
+  [:table.table.table-sm.table-striped
    [:thead (tr "header" header-cells :th)]
    [:tbody (apply concat body)]])
 
