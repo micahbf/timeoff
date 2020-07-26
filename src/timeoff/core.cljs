@@ -27,7 +27,7 @@
 (defn hours-per-period [days-per-year] (/ (* 8 days-per-year) 26))
 
 (defn days->hours [days] (* days 8))
-(defn hours->days [hours] (Math/floor (/ hours 8)))
+(defn hours->days [hours] (Math/floor (.toFixed (/ hours 8) 3)))
 
 (defn accrued-by-payday [accrued-as-of starting-hours hours-per-period]
   (map-indexed (fn [idx date]
@@ -36,6 +36,17 @@
                     :accrued-hours accrued-hours
                     :accrued-days (hours->days accrued-hours)}))
                (paydays-after accrued-as-of)))
+
+(defn insert-at-new-year [accruals el-fn]
+  (reduce (fn [accruals next]
+            (let [last-acc (last accruals)
+                  last-year (and last-acc (time/year (:date last-acc)))
+                  next-year (time/year (:date next))]
+              (if (and last-year (not= last-year next-year))
+                (conj accruals (el-fn (time/year (:date next))) next)
+                (conj accruals next))))
+          []
+          accruals))
 
 
 ;; -------------------------
@@ -84,10 +95,11 @@
   ([key cells cell-elem]
    [:tr {:key key} (map-indexed (fn [idx cell] [cell-elem {:key (str key idx)} cell]) cells)]))
 
-(defn table [header rows]
+(defn table [header-cells & body]
   [:table.table.table-striped
-   [:thead (tr "header" header :th)]
-   [:tbody (map #(tr (first %) %) rows)]])
+   [:thead (tr "header" header-cells :th)]
+   [:tbody (apply concat body)]])
+   ;; [:tbody (map #(tr (first %) %) rows)]])
 
 (defn infobox [body]
   [:div.card
@@ -113,6 +125,8 @@
               " date in " [:code "/accruals list"] "."]))
 
 (def human-formatter (time-format/formatter "M/d/yy"))
+(defn human-format-date [date]
+  (time-format/unparse human-formatter date))
 
 (defn style-hours [hours]
   (let [rounded (.toFixed hours 2)]
@@ -120,23 +134,41 @@
       [:span.text-danger rounded]
       rounded)))
 
+(defn accruals-row [row]
+  (tr (str (:date row)) [(human-format-date (:date row))
+                  (style-hours (:accrued-hours row))
+                  (:accrued-days row)]))
+
+(defn new-year-per-row [new-year]
+  [:tr.table-success {:key (str "new-year-per" new-year)}
+   [:td (human-format-date (time/local-date new-year 1 1))]
+   [:td {:col-span 2}
+    [:small "Make sure you have used your personal days, as they do not roll over."
+     [:br] "You will get " [:strong "3"] " new personal days, which are not reflected here."]]])
+
 (defn accruals-table []
   (let [starting-hours (- @hours-accrued (days->hours @future-days-used))
         accruals (take 26 (accrued-by-payday
                            @accrued-as-of
                            starting-hours
-                           (hours-per-period @vac-days-per-year)))]
+                           (hours-per-period @vac-days-per-year)))
+        accs-with-new-year (insert-at-new-year accruals (fn [year] {:new-year year}))]
     (table
      ["Date" "Unused Accrued Hours" "Unused Accrued Days"]
-     (map (fn [r] [(time-format/unparse human-formatter (:date r))
-                   (style-hours (:accrued-hours r))
-                   (:accrued-days r)])
-          accruals))))
+     (map #(if (:new-year %)
+             (new-year-per-row (:new-year %))
+             (accruals-row %))
+          accs-with-new-year))))
 
 (defn general-info []
   (infobox ["This is a calculator to help you plan how much time off you can take in the future. "
             "It lets you know how much time you can take, when."
-            [:br] "Note that this does not take personal days (PER) into account."]))
+            [:br] [:br]
+            "The \"unused accrued\" figures in the table represent how much time you will have available, "
+            "less any vacation time you have already planned in the future."
+            [:br] [:br]
+            "Note that this does not take personal days (PER) into account."
+            ]))
 
 (defn feedback []
   (infobox ["Questions? Suggestions? Holler at " [:strong "@Micah"] " on Slack. Or raise an issue on "
