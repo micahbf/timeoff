@@ -86,7 +86,7 @@
 
 (defn table [header rows]
   [:table.table.table-striped
-   [:thead (tr "header" header)]
+   [:thead (tr "header" header :th)]
    [:tbody (map #(tr (first %) %) rows)]])
 
 (defn infobox [body]
