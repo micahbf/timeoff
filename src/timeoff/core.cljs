@@ -9,7 +9,7 @@
 ;; -------------------------
 ;; Logic
 
-(def anchor-payday (time/local-date 2020 7 20))
+(def anchor-payday (time/local-date 2020 7 31))
 
 (defn paydays-from [date]
    (lazy-seq (cons date (paydays-from (time/plus date (time/weeks 2))))))
